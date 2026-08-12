@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kameň Papier Nožnice</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+    margin:0;
+    font-family:Arial,sans-serif;
+    background:linear-gradient(135deg,#111,#292929);
+    color:white;
+    text-align:center;
+}
+
+.screen{
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:20px;
+}
+
+.box{
+    width:100%;
+    max-width:600px;
+    padding:35px;
+    border-radius:25px;
+    background:rgba(255,255,255,.08);
+    box-shadow:0 0 30px #0008;
+}
+
+.hidden{display:none!important}
+
+.language{
+    position:fixed;
+    top:15px;
+    right:15px;
+    z-index:10;
+}
+
+select,input{
+    padding:12px;
+    border:0;
+    border-radius:10px;
+    font-size:17px;
+}
+
+input{
+    width:100%;
+    margin:10px 0;
+    text-align:center;
+    text-transform:uppercase;
+}
+
+.logo{font-size:70px}
+
+h1{font-size:40px}
+
+button{
+    cursor:pointer;
+    border:0;
+    border-radius:15px;
+    transition:.2s;
+}
+
+button:hover{
+    transform:scale(1.03);
+}
+
+.main{
+    width:100%;
+    padding:20px;
+    background:#4caf50;
+    color:white;
+    font-size:28px;
+    font-weight:bold;
+}
+
+.mode{
+    width:100%;
+    padding:18px;
+    margin:8px 0;
+    background:white;
+    color:#222;
+    font-size:20px;
+}
+
+.choice{
+    font-size:55px;
+    padding:20px;
+    margin:8px;
+    background:white;
+}
+
+.back{
+    margin-top:15px;
+    padding:12px 25px;
+    background:#777;
+    color:white;
+}
+
+.code{
+    font-size:42px;
+    font-weight:bold;
+    letter-spacing:8px;
+    margin:25px;
+}
+
+#result{
+    min-height:100px;
+    font-size:24px;
+    margin:25px 0;
+}
+
+#loading{
+    position:fixed;
+    inset:0;
+    display:none;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+    background:#111;
+    z-index:100;
+}
+
+#loading.show{display:flex}
+
+.loader{
+    font-size:80px;
+    animation:shake .5s infinite alternate;
+}
+
+@keyframes shake{
+    from{transform:rotate(-15deg)}
+    to{transform:rotate(15deg)}
+}
+</style>
+</head>
+
+<body>
+
+<div class="language">
+<select id="language" onchange="changeLanguage()">
+<option value="sk">🇸🇰 Slovenčina</option>
+<option value="cs">🇨🇿 Čeština</option>
+<option value="en">🇬🇧 English</option>
+</select>
+</div>
+
+<!-- MENU -->
+
+<div id="menu" class="screen">
+<div class="box">
+
+<div class="logo">🪨📄✂️</div>
+
+<h1 data-i18n="title">
+Kameň Papier Nožnice
+</h1>
+
+<button class="main"
+onclick="showModes()"
+data-i18n="play">
+🎮 HRAŤ
+</button>
+
+</div>
+</div>
+
+<!-- VÝBER HRY -->
+
+<div id="modes" class="screen hidden">
+<div class="box">
+
+<h1 data-i18n="choose">
+Vyber hru
+</h1>
+
+<button class="mode"
+onclick="startBot()"
+data-i18n="bot">
+🤖 Proti botovi
+</button>
+
+<button class="mode"
+onclick="showMultiplayer()"
+data-i18n="multi">
+🌐 Multiplayer
+</button>
+
+<button class="mode"
+onclick="start1v1()"
+data-i18n="one">
+⚔️ 1 vs 1
+</button>
+
+<button class="back"
+onclick="backMenu()">
+← Späť
+</button>
+
+</div>
+</div>
+
+<!-- MULTIPLAYER -->
+
+<div id="multiplayer" class="screen hidden">
+<div class="box">
+
+<h1>🌐 Multiplayer</h1>
+
+<p id="internet">
+Kontrolujem internet...
+</p>
+
+<button class="mode"
+onclick="createRoom()">
+➕ Vytvoriť hru
+</button>
+
+<hr>
+
+<p>Zadaj kód miestnosti:</p>
+
+<input
+id="roomInput"
+maxlength="6"
+placeholder="ABC123">
+
+<button class="mode"
+onclick="joinRoom()">
+🚪 Pripojiť sa
+</button>
+
+<button class="back"
+onclick="showModes()">
+← Späť
+</button>
+
+</div>
+</div>
+
+<!-- ČAKANIE -->
+
+<div id="waiting" class="screen hidden">
+<div class="box">
+
+<h1>⏳</h1>
+
+<p>Čakám na druhého hráča...</p>
+
+<div id="roomCode" class="code">
+------
+</div>
+
+<p>Pošli tento kód druhému hráčovi.</p>
+
+<button class="back"
+onclick="backMenu()">
+🏠 Menu
+</button>
+
+</div>
+</div>
+
+<!-- HRA -->
+
+<div id="game" class="screen hidden">
+<div class="box">
+
+<h1>🪨📄✂️</h1>
+
+<h2>
+Kolo <span id="round">1</span>/3
+</h2>
+
+<p id="gameStatus">
+Vyber si!
+</p>
+
+<button class="choice"
+onclick="move('kamen')">
+🪨
+</button>
+
+<button class="choice"
+onclick="move('papier')">
+📄
+</button>
+
+<button class="choice"
+onclick="move('noznice')">
+✂️
+</button>
+
+<div id="result">
+Čakám na výber...
+</div>
+
+<h2 id="score">
+0 : 0
+</h2>
+
+<button class="back"
+onclick="backMenu()">
+🏠 Menu
+</button>
+
+</div>
+</div>
+
+<!-- LOADING -->
+
+<div id="loading">
+<div class="loader">🌐</div>
+<h2 id="loadingText">
+Pripájam sa...
+</h2>
+</div>
+
+<script>
+
+const translations={
+
+sk:{
+title:"Kameň Papier Nožnice",
+play:"🎮 HRAŤ",
+choose:"Vyber hru",
+bot:"🤖 Proti botovi",
+multi:"🌐 Multiplayer",
+one:"⚔️ 1 vs 1"
+},
+
+cs:{
+title:"Kámen Papír Nůžky",
+play:"🎮 HRÁT",
+choose:"Vyber hru",
+bot:"🤖 Proti botovi",
+multi:"🌐 Multiplayer",
+one:"⚔️ 1 vs 1"
+},
+
+en:{
+title:"Rock Paper Scissors",
+play:"🎮 PLAY",
+choose:"Choose game",
+bot:"🤖 Play against bot",
+multi:"🌐 Multiplayer",
+one:"⚔️ 1 vs 1"
+}
+
+};
+
+let language="sk";
+
+let socket=null;
+let room=null;
+
+
+/* JAZYK */
+
+function changeLanguage(){
+
+language=
+document.getElementById("language").value;
+
+document
+.querySelectorAll("[data-i18n]")
+.forEach(el=>{
+
+const key=el.dataset.i18n;
+
+el.textContent=
+translations[language][key];
+
+});
+
+}
+
+
+/* OBRAZOVKY */
+
+function hideAll(){
+
+document
+.querySelectorAll(".screen")
+.forEach(x=>{
+x.classList.add("hidden");
+});
+
+}
+
+function showModes(){
+
+hideAll();
+
+document
+.getElementById("modes")
+.classList.remove("hidden");
+
+}
+
+function backMenu(){
+
+if(socket){
+socket.close();
+socket=null;
+}
+
+room=null;
+
+hideAll();
+
+document
+.getElementById("menu")
+.classList.remove("hidden");
+
+}
+
+
+/* BOT */
+
+function startBot(){
+
+alert(
+"Proti botovi zostáva tvoja pôvodná hra."
+);
+
+}
+
+
+/* 1 VS 1 */
+
+function start1v1(){
+
+alert(
+"1 vs 1 zostáva tvoja pôvodná hra."
+);
+
+}
+
+
+/* MULTIPLAYER */
+
+function showMultiplayer(){
+
+hideAll();
+
+document
+.getElementById("multiplayer")
+.classList.remove("hidden");
+
+checkInternet();
+
+}
+
+
+/* INTERNET */
+
+function checkInternet(){
+
+const status=
+document.getElementById("internet");
+
+status.textContent=
+"🌐 Kontrolujem pripojenie...";
+
+const timer=setTimeout(()=>{
+
+status.textContent=
+"❌ Bez internetu. Pripojte sa na Wi-Fi alebo zapnite mobilné dáta.";
+
+},10000);
+
+fetch(
+"https://www.gstatic.com/generate_204",
+{
+method:"GET",
+mode:"no-cors"
+}
+)
+.then(()=>{
+
+clearTimeout(timer);
+
+status.textContent=
+"✅ Internet je dostupný.";
+
+})
+.catch(()=>{
+
+clearTimeout(timer);
+
+status.textContent=
+"❌ Bez internetu. Pripojte sa na Wi-Fi alebo zapnite mobilné dáta.";
+
+});
+
+}
+
+
+/* SERVER */
+
+function connect(){
+
+socket=
+new WebSocket(
+"wss://TVOJ-SERVER.sk"
+);
+
+socket.onopen=()=>{
+
+console.log("Pripojené na server");
+
+};
+
+socket.onmessage=(event)=>{
+
+const data=
+JSON.parse(event.data);
+
+serverMessage(data);
+
+};
+
+socket.onerror=()=>{
+
+hideLoading();
+
+alert(
+"Server nie je dostupný."
+);
+
+};
+
+}
+
+
+/* LOADING */
+
+function showLoading(text){
+
+document
+.getElementById("loadingText")
+.textContent=text;
+
+document
+.getElementById("loading")
+.classList.add("show");
+
+}
+
+function hideLoading(){
+
+document
+.getElementById("loading")
+.classList.remove("show");
+
+}
+
+
+/* CREATE */
+
+function createRoom(){
+
+if(!navigator.onLine){
+
+alert(
+"Nie ste pripojení na internet."
+);
+
+return;
+
+}
+
+showLoading(
+"Vytváram miestnosť..."
+);
+
+connect();
+
+socket.addEventListener(
+"open",
+()=>{
+
+socket.send(
+JSON.stringify({
+type:"create"
+})
+);
+
+},
+{once:true}
+);
+
+}
+
+
+/* JOIN */
+
+function joinRoom(){
+
+const code=
+document
+.getElementById("roomInput")
+.value
+.trim()
+.toUpperCase();
+
+if(code.length!==6){
+
+alert(
+"Kód musí mať 6 znakov."
+);
+
+return;
+
+}
+
+if(!navigator.onLine){
+
+alert(
+"Nie ste pripojení na internet."
+);
+
+return;
+
+}
+
+showLoading(
+"Pripájam sa..."
+);
+
+connect();
+
+socket.addEventListener(
+"open",
+()=>{
+
+socket.send(
+JSON.stringify({
+type:"join",
+room:code
+})
+);
+
+},
+{once:true}
+);
+
+}
+
+
+/* SERVER SPRÁVY */
+
+function serverMessage(data){
+
+if(data.type==="roomCreated"){
+
+hideLoading();
+
+room=data.room;
+
+document
+.getElementById("roomCode")
+.textContent=room;
+
+hideAll();
+
+document
+.getElementById("waiting")
+.classList.remove("hidden");
+
+}
+
+if(data.type==="gameStart"){
+
+hideLoading();
+
+hideAll();
+
+document
+.getElementById("game")
+.classList.remove("hidden");
+
+}
+
+if(data.type==="roundResult"){
+
+document
+.getElementById("round")
+.textContent=data.round;
+
+document
+.getElementById("score")
+.textContent=
+data.myScore+
+" : "+
+data.opponentScore;
+
+document
+.getElementById("result")
+.innerHTML=
+"Ty: "+
+emoji(data.myMove)+
+"<br>"+
+"Súper: "+
+emoji(data.opponentMove)+
+"<br><br>"+
+data.result;
+
+}
+
+if(data.type==="gameOver"){
+
+document
+.getElementById("result")
+.innerHTML=
+"🏆 Hra skončila!<br><br>"+
+data.myScore+
+" : "+
+data.opponentScore;
+
+}
+
+if(data.type==="error"){
+
+hideLoading();
+
+alert(data.message);
+
+}
+
+}
+
+
+/* ŤAH */
+
+function move(choice){
+
+if(!socket || !room){
+return;
+}
+
+socket.send(
+JSON.stringify({
+type:"move",
+room:room,
+move:choice
+})
+);
+
+document
+.getElementById("gameStatus")
+.textContent=
+"⏳ Čakám na druhého hráča...";
+
+}
+
+
+/* EMOJI */
+
+function emoji(move){
+
+if(move==="kamen")
+return "🪨";
+
+if(move==="papier")
+return "📄";
+
+if(move==="noznice")
+return "✂️";
+
+return "❓";
+
+}
+
+</script>
+
+</body>
+</html>
